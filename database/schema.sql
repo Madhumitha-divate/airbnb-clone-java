@@ -1,0 +1,24 @@
+CREATE DATABASE IF NOT EXISTS airbnb_db;
+USE airbnb_db;
+
+CREATE TABLE IF NOT EXISTS users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS properties (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    location VARCHAR(150) NOT NULL,
+    price DOUBLE NOT NULL,
+    is_available BOOLEAN DEFAULT TRUE
+);
+
+CREATE TABLE IF NOT EXISTS bookings (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    property_id INT NOT NULL,
+    booking_date DATE DEFAULT (CURRENT_DATE),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (property_id) REFERENCES properties(id)
+);
