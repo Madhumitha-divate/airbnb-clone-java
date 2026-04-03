@@ -1,13 +1,5 @@
 # 🏠 Airbnb Clone — Property Rental Backend System
 
-![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=java&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-00000F?style=for-the-badge&logo=mysql&logoColor=white)
-![JDBC](https://img.shields.io/badge/JDBC-007396?style=for-the-badge&logo=java&logoColor=white)
-![Eclipse](https://img.shields.io/badge/Eclipse-2C2255?style=for-the-badge&logo=eclipse&logoColor=white)
-![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=for-the-badge)
-
----
-
 ## 📌 About The Project
 
 A fully functional **Property Rental Backend System** inspired by Airbnb, built using **Core Java and MySQL with JDBC**.
@@ -78,8 +70,6 @@ AirbnbClone/
 ---
 
 ## ⚙️ Setup & Installation
-
-### Prerequisites
 - Java JDK 8 or above
 - MySQL 8.0
 - Eclipse IDE
@@ -118,42 +108,11 @@ Right click `Main.java` → **Run As** → **Java Application**
 
 ---
 
-## 🗄️ Database Schema
-
-```sql
-CREATE DATABASE IF NOT EXISTS airbnb_db;
-USE airbnb_db;
-
-CREATE TABLE users (
-    id    INT PRIMARY KEY AUTO_INCREMENT,
-    name  VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL
-);
-
-CREATE TABLE properties (
-    id           INT PRIMARY KEY AUTO_INCREMENT,
-    location     VARCHAR(150) NOT NULL,
-    price        DOUBLE NOT NULL,
-    is_available BOOLEAN DEFAULT TRUE
-);
-
-CREATE TABLE bookings (
-    id           INT PRIMARY KEY AUTO_INCREMENT,
-    user_id      INT NOT NULL,
-    property_id  INT NOT NULL,
-    booking_date DATE DEFAULT (CURRENT_DATE),
-    FOREIGN KEY (user_id)     REFERENCES users(id),
-    FOREIGN KEY (property_id) REFERENCES properties(id)
-);
-```
-
----
-
 ## 📸 Sample Output
 
 ```
 ==========================================
-  🏠 Welcome to Airbnb Clone System      
+   Welcome to Airbnb Clone System      
 ==========================================
 
 ========== MAIN MENU ==========
