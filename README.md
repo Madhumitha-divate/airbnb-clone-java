@@ -1,59 +1,49 @@
-# 🏠 Airbnb Clone — Booking Platform Backend
+# 🏠 Airbnb Clone: Property Booking System
 
-A property booking backend built with **Java, Spring Boot, MySQL and raw JDBC** (no ORM). It covers user registration and authentication, property listings with location and price-range search, booking and cancellation, double-booking prevention, and SQL revenue reports.
+A menu-driven Java console application for managing users, properties and bookings, built with **Java 17, JDBC and MySQL** (hand-written SQL, no ORM).
 
 ## 🔧 Tech Stack
 
 - Java 17
-- Spring Boot (layered architecture)
-- MySQL with JDBC (hand-written SQL, no ORM)
-- REST APIs
-- Maven
+- JDBC with hand-written SQL (no ORM)
+- MySQL
 - Git
 
 ## 💡 Features
 
-- User registration and authentication
-- Property listing with location and price-range search
-- Booking and cancellation flows
-- Double-booking prevention logic
-- Revenue reporting using SQL JOINs and GROUP BY
+- Add and view users, with validation for empty names and invalid emails
+- Add and view properties, with price validation
+- Book a property: the app checks that the user and property exist and that the property is available
+- Cancel a booking, which makes the property available again
+- View all bookings, or the bookings of one user
+- Search properties by location (case-insensitive) and by price range
+- Sort properties by price
+- Revenue report using a SQL JOIN with `SUM` and `COUNT`
+- Input validation with clear error messages for invalid numbers, IDs and ranges
 
-## 📐 Architecture
-
-```
-Client → Controller → Service → Repository → MySQL
-```
-
-- **Controller:** handles HTTP requests and responses
-- **Service:** business logic such as booking rules and availability checks
-- **Repository:** all JDBC and SQL access; business logic never touches the database directly
-
-## 🗂️ Project Structure
+## 📐 Structure
 
 ```
-airbnb-clone-java/
-├── database/    → SQL schema for MySQL
-├── src/         → Java source code
-├── *.png        → Application screenshots
-└── README.md
+src/com/airbnb/
+├── main/         → Main.java (menu and user input)
+├── model/        → User, Property
+├── repository/   → UserRepository, PropertyRepository, BookingRepository (all JDBC and SQL)
+└── util/         → DBConnection (MySQL connection)
+database/         → SQL schema
 ```
 
 ## 🚀 How to Run
 
-**Prerequisites:** Java 17, Maven, MySQL
+**Prerequisites:** Java 17, MySQL, the MySQL JDBC driver
 
 1. Clone the repository:
    ```
    git clone https://github.com/Madhumitha-divate/airbnb-clone-java.git
    cd airbnb-clone-java
    ```
-2. Create a MySQL database and import the SQL schema file from the `database/` folder.
-3. Open `application.properties` and set your MySQL URL, username and password.
-4. Start the application:
-   ```
-   mvn spring-boot:run
-   ```
+2. Create a MySQL database and run the SQL file from the `database/` folder to create the tables.
+3. Set your MySQL URL, username and password in `DBConnection.java` (`com.airbnb.util`).
+4. Run `com.airbnb.main.Main` from your IDE. The menu appears in the console.
 
 ## 📸 Screenshots
 
@@ -64,12 +54,18 @@ airbnb-clone-java/
 | ![Screenshot 7](airbnb8.png) | ![Screenshot 8](airbnb9.png) | ![Screenshot 9](airbnb10.png) |
 | ![Screenshot 10](airbnb12.png) | ![Screenshot 11](airbnb13.png) | |
 
+## ⚠️ Known Limitations
+
+- Booking is two separate database steps (save the booking, then mark the property unavailable) with no transaction, so two simultaneous bookings could both succeed.
+- Bookings have no check-in or check-out dates.
+- There is no login or authentication.
+
 ## 🔮 Future Improvements
 
-- Add unit tests for the service layer
-- Add API documentation with Swagger / OpenAPI
-- Add pagination to search results
-- Add Docker support
+- Wrap booking in a JDBC transaction with a conditional update, to prevent double booking safely
+- Add check-in and check-out dates with overlap checks
+- Add JUnit tests for the booking and cancellation logic
+- Move to Spring Boot with REST APIs
 
 ## 👩‍💻 Author
 
