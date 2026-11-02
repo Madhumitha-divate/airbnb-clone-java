@@ -8,23 +8,87 @@ import java.util.List;
 
 public class BookingRepository {
 
-    // ✅ Add Booking
-    public void addBooking(int userId, int propertyId) {
-        String sql = "INSERT INTO bookings (user_id, property_id) VALUES (?, ?)";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+    // Book a property in ONE transaction.
+    // The conditional UPDATE only succeeds for the first buyer, because MySQL
+    // locks the row; a second buyer updates 0 rows and loses cleanly.
+    // Returns true if the booking was saved, false otherwise.
+    public boolean bookProperty(int userId, int propertyId) {
+        String lockSql   = "UPDATE properties SET is_available = false " +
+                           "WHERE id = ? AND is_available = true";
+        String insertSql = "INSERT INTO bookings (user_id, property_id) VALUES (?, ?)";
 
-            ps.setInt(1, userId);
-            ps.setInt(2, propertyId);
-            ps.executeUpdate();
-            System.out.println("✅ Booking confirmed!");
+        try (Connection conn = DBConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement lock = conn.prepareStatement(lockSql);
+                 PreparedStatement insert = conn.prepareStatement(insertSql)) {
 
+                lock.setInt(1, propertyId);
+                if (lock.executeUpdate() == 0) {   // someone else got it first
+                    conn.rollback();
+                    return false;
+                }
+
+                insert.setInt(1, userId);
+                insert.setInt(2, propertyId);
+                insert.executeUpdate();
+
+                conn.commit();
+                return true;
+
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            }
         } catch (SQLException e) {
-            System.out.println("❌ Error adding booking: " + e.getMessage());
+            System.out.println("❌ Error booking: " + e.getMessage());
+            return false;
         }
     }
 
-    // ✅ View All Bookings
+    // Cancel a booking in ONE transaction:
+    // delete the booking and free the property together, or neither.
+    public boolean cancelBooking(int bookingId) {
+        String findSql   = "SELECT property_id FROM bookings WHERE id = ? FOR UPDATE";
+        String deleteSql = "DELETE FROM bookings WHERE id = ?";
+        String freeSql   = "UPDATE properties SET is_available = true WHERE id = ?";
+
+        try (Connection conn = DBConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement find = conn.prepareStatement(findSql);
+                 PreparedStatement delete = conn.prepareStatement(deleteSql);
+                 PreparedStatement free = conn.prepareStatement(freeSql)) {
+
+                find.setInt(1, bookingId);
+                int propertyId;
+                try (ResultSet rs = find.executeQuery()) {
+                    if (!rs.next()) {
+                        conn.rollback();
+                        System.out.println("❌ Booking ID not found!");
+                        return false;
+                    }
+                    propertyId = rs.getInt("property_id");
+                }
+
+                delete.setInt(1, bookingId);
+                delete.executeUpdate();
+
+                free.setInt(1, propertyId);
+                free.executeUpdate();
+
+                conn.commit();
+                return true;
+
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            }
+        } catch (SQLException e) {
+            System.out.println("❌ Error cancelling booking: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // View all bookings (Main prints the "no bookings" message)
     public List<String> getAllBookings() {
         List<String> list = new ArrayList<>();
         String sql = "SELECT b.id, u.name, p.location, p.price, b.booking_date " +
@@ -45,17 +109,13 @@ public class BookingRepository {
                 );
             }
 
-            if (list.isEmpty()) {
-                System.out.println("❌ No bookings found.");
-            }
-
         } catch (SQLException e) {
             System.out.println("❌ Error fetching bookings: " + e.getMessage());
         }
         return list;
     }
 
-    // ✅ NEW — View Bookings by User ID
+    // View bookings of one user
     public void getBookingsByUser(int userId) {
         String sql = "SELECT b.id, p.location, p.price, b.booking_date " +
                      "FROM bookings b " +
@@ -65,58 +125,26 @@ public class BookingRepository {
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, userId);
-            ResultSet rs = ps.executeQuery();
+            try (ResultSet rs = ps.executeQuery()) {
 
-            boolean found = false;
-            while (rs.next()) {
-                found = true;
-                System.out.println(
-                    "Booking#" + rs.getInt("id") +
-                    " | Property: " + rs.getString("location") +
-                    " | Price: Rs." + rs.getDouble("price") +
-                    " | Date: "     + rs.getDate("booking_date")
-                );
-            }
+                boolean found = false;
+                while (rs.next()) {
+                    found = true;
+                    System.out.println(
+                        "Booking#" + rs.getInt("id") +
+                        " | Property: " + rs.getString("location") +
+                        " | Price: Rs." + rs.getDouble("price") +
+                        " | Date: "     + rs.getDate("booking_date")
+                    );
+                }
 
-            if (!found) {
-                System.out.println("❌ No bookings found for this user.");
+                if (!found) {
+                    System.out.println("❌ No bookings found for this user.");
+                }
             }
 
         } catch (SQLException e) {
             System.out.println("❌ Error: " + e.getMessage());
-        }
-    }
-
-    // ✅ Cancel Booking
-    public void cancelBooking(int bookingId, PropertyRepository propertyRepo) {
-        // Step 1 - Get property ID from booking
-        String getPropertySql = "SELECT property_id FROM bookings WHERE id = ?";
-        String deleteSql      = "DELETE FROM bookings WHERE id = ?";
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps1 = conn.prepareStatement(getPropertySql);
-             PreparedStatement ps2 = conn.prepareStatement(deleteSql)) {
-
-            ps1.setInt(1, bookingId);
-            ResultSet rs = ps1.executeQuery();
-
-            if (rs.next()) {
-                int propertyId = rs.getInt("property_id");
-
-                // Step 2 - Delete booking
-                ps2.setInt(1, bookingId);
-                ps2.executeUpdate();
-
-                // Step 3 - Mark property as available again
-                propertyRepo.updateAvailability(propertyId, true);
-                System.out.println("✅ Booking cancelled! Property is now available.");
-
-            } else {
-                System.out.println("❌ Booking ID not found!");
-            }
-
-        } catch (SQLException e) {
-            System.out.println("❌ Error cancelling booking: " + e.getMessage());
         }
     }
 }

@@ -19,7 +19,7 @@ public class Main {
     public static void main(String[] args) {
 
         System.out.println("==========================================");
-        System.out.println("  🏠 Welcome to Airbnb Clone System      ");
+        System.out.println("   Welcome to Airbnb Clone System      ");
         System.out.println("==========================================");
 
         while (true) {
@@ -69,7 +69,7 @@ public class Main {
         }
     }
 
-    // ✅ 1. Add User
+    // 1. Add User
     static void addUser() {
         System.out.println("\n--- Add New User ---");
         System.out.print("Enter Name  : ");
@@ -91,7 +91,7 @@ public class Main {
         userRepo.addUser(name, email);
     }
 
-    // ✅ 2. View All Users
+    // 2. View All Users
     static void viewAllUsers() {
         System.out.println("\n--- All Users ---");
         List<User> users = userRepo.getAllUsers();
@@ -102,7 +102,7 @@ public class Main {
         }
     }
 
-    // ✅ 3. Add Property
+    // 3. Add Property
     static void addProperty() {
         System.out.println("\n--- Add New Property ---");
         System.out.print("Enter Location : ");
@@ -129,7 +129,7 @@ public class Main {
         }
     }
 
-    // ✅ 4. View All Properties
+    // 4. View All Properties
     static void viewAllProperties() {
         System.out.println("\n--- All Properties ---");
         List<Property> list = propertyRepo.getAllProperties();
@@ -140,7 +140,7 @@ public class Main {
         }
     }
 
-    // ✅ 5. Book Property
+    // 5. Book Property (one transaction in the repository)
     static void bookProperty() {
         System.out.println("\n--- Book a Property ---");
         try {
@@ -156,34 +156,42 @@ public class Main {
             Property property = propertyRepo.getPropertyById(propertyId);
             if (property == null) return;
 
+            // Friendly early message; the real protection is the
+            // conditional UPDATE inside bookingRepo.bookProperty
             if (!property.isAvailable()) {
                 System.out.println("❌ Sorry! This property is already booked.");
                 return;
             }
 
-            bookingRepo.addBooking(userId, propertyId);
-            propertyRepo.updateAvailability(propertyId, false);
-            System.out.println("🎉 Property booked successfully for " + user.getName() + "!");
+            if (bookingRepo.bookProperty(userId, propertyId)) {
+                System.out.println("✅ Booking confirmed!");
+                System.out.println("🎉 Property booked successfully for " + user.getName() + "!");
+            } else {
+                System.out.println("❌ Booking failed. The property may have just been booked.");
+            }
 
         } catch (NumberFormatException e) {
             System.out.println("❌ Invalid input! Enter a valid number.");
         }
     }
 
-    // ✅ 6. Cancel Booking
+    // 6. Cancel Booking (one transaction in the repository)
     static void cancelBooking() {
         System.out.println("\n--- Cancel Booking ---");
         try {
             System.out.print("Enter Booking ID to cancel : ");
             int bookingId = Integer.parseInt(sc.nextLine().trim());
-            bookingRepo.cancelBooking(bookingId, propertyRepo);
+
+            if (bookingRepo.cancelBooking(bookingId)) {
+                System.out.println("✅ Booking cancelled! Property is now available.");
+            }
 
         } catch (NumberFormatException e) {
             System.out.println("❌ Invalid input! Enter a valid number.");
         }
     }
 
-    // ✅ 7. View All Bookings
+    // 7. View All Bookings
     static void viewAllBookings() {
         System.out.println("\n--- All Bookings ---");
         List<String> bookings = bookingRepo.getAllBookings();
@@ -194,7 +202,7 @@ public class Main {
         }
     }
 
-    // ✅ 8. View Bookings by User
+    // 8. View Bookings by User
     static void viewBookingsByUser() {
         System.out.println("\n--- Bookings by User ---");
         try {
@@ -212,7 +220,7 @@ public class Main {
         }
     }
 
-    // ✅ 9. Search by Location
+    // 9. Search by Location
     static void searchByLocation() {
         System.out.println("\n--- Search by Location ---");
         System.out.print("Enter Location : ");
@@ -229,7 +237,7 @@ public class Main {
         }
     }
 
-    // ✅ 10. Search by Price Range
+    // 10. Search by Price Range
     static void searchByPriceRange() {
         System.out.println("\n--- Search by Price Range ---");
         try {
@@ -254,7 +262,7 @@ public class Main {
         }
     }
 
-    // ✅ 11. Sort by Price
+    // 11. Sort by Price
     static void sortByPrice() {
         System.out.println("\n--- Properties Sorted by Price (Low to High) ---");
         List<Property> list = propertyRepo.sortByPrice();
@@ -265,29 +273,10 @@ public class Main {
         }
     }
 
-    // ✅ 12. Revenue Report
+    // 12. Revenue Report (SQL lives in the repository, not here)
     static void revenueReport() {
-        System.out.println("\n================================");
-        System.out.println("      TOTAL REVENUE REPORT      ");
-        System.out.println("================================");
-        String sql = "SELECT COALESCE(SUM(p.price), 0) as total_revenue, " +
-                     "COUNT(b.id) as total_bookings " +
-                     "FROM bookings b " +
-                     "JOIN properties p ON b.property_id = p.id";
-        try (java.sql.Connection conn = com.airbnb.util.DBConnection.getConnection();
-             java.sql.Statement st = conn.createStatement();
-             java.sql.ResultSet rs = st.executeQuery(sql)) {
-
-            if (rs.next()) {
-                double revenue = rs.getDouble("total_revenue");
-                int total      = rs.getInt("total_bookings");
-                System.out.printf("💰 Total Revenue  : Rs.%.2f%n", revenue);
-                System.out.println("📋 Total Bookings : " + total);
-            }
-        } catch (java.sql.SQLException e) {
-            System.out.println("❌ Error: " + e.getMessage());
-        }
-        System.out.println("================================");
+        System.out.println("\n      TOTAL REVENUE REPORT      ");
+        propertyRepo.getTotalRevenue();
     }
 
 }
