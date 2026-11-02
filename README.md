@@ -14,6 +14,7 @@ A menu-driven Java console application for managing users, properties and bookin
 - Add and view users, with validation for empty names and invalid emails
 - Add and view properties, with price validation
 - Book a property: the app checks that the user and property exist and that the property is available
+- Booking and cancellation run as JDBC transactions with a conditional update, so a property cannot be booked twice
 - Cancel a booking, which makes the property available again
 - View all bookings, or the bookings of one user
 - Search properties by location (case-insensitive) and by price range
@@ -26,7 +27,7 @@ A menu-driven Java console application for managing users, properties and bookin
 ```
 src/com/airbnb/
 ├── main/         → Main.java (menu and user input)
-├── model/        → User, Property
+├── model/        → User, Property, Booking
 ├── repository/   → UserRepository, PropertyRepository, BookingRepository (all JDBC and SQL)
 └── util/         → DBConnection (MySQL connection)
 database/         → SQL schema
@@ -41,8 +42,8 @@ database/         → SQL schema
    git clone https://github.com/Madhumitha-divate/airbnb-clone-java.git
    cd airbnb-clone-java
    ```
-2. Create a MySQL database and run the SQL file from the `database/` folder to create the tables.
-3. Set your MySQL URL, username and password in `DBConnection.java` (`com.airbnb.util`).
+2. Create a MySQL database named `airbnb_db` and run the SQL file from the `database/` folder to create the tables.
+3. Set the environment variable `DB_PASSWORD` to your MySQL password. The URL and username are in `DBConnection.java` (`com.airbnb.util`).
 4. Run `com.airbnb.main.Main` from your IDE. The menu appears in the console.
 
 ## 📸 Screenshots
@@ -56,15 +57,15 @@ database/         → SQL schema
 
 ## ⚠️ Known Limitations
 
-- Booking is two separate database steps (save the booking, then mark the property unavailable) with no transaction, so two simultaneous bookings could both succeed.
-- Bookings have no check-in or check-out dates.
-- There is no login or authentication.
+- Bookings have no check-in or check-out dates
+- There is no login or authentication
+- Console application only (no REST API)
 
 ## 🔮 Future Improvements
 
-- Wrap booking in a JDBC transaction with a conditional update, to prevent double booking safely
 - Add check-in and check-out dates with overlap checks
 - Add JUnit tests for the booking and cancellation logic
+- Add a concurrency test with multiple threads
 - Move to Spring Boot with REST APIs
 
 ## 👩‍💻 Author
